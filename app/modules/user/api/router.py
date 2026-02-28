@@ -1,6 +1,8 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 from fastapi import APIRouter
-from .v1.router import v1 as user_router
+from app.modules.user.api.user import router
 
-v1 = APIRouter()
+user_router = APIRouter(prefix='/user')
 
-v1.include_router(user_router)
+user_router.include_router(router, tags=['用户管理'])
