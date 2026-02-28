@@ -44,9 +44,14 @@ class Settings(BaseSettings):
     STARTUP_VERBOSE: bool = False  # 是否显示详细的启动信息
 
     # JWT配置
-    SECRET_KEY: str = 'your-secret-key-change-in-production'
+    """安全的随机密钥，该密钥将用于对 JWT 令牌进行签名"""
+    SECRET_KEY: str = 'vgb0tnl9d58+6n-6h-ea&u^1#s0ccp!794=kbvqacjq75vzps$'
+    """用于设定 JWT 令牌签名算法"""
     ALGORITHM: str = "HS256"
+    """access_token 过期时间，30天"""
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440 * 30  # 30天
+    """refresh_token 过期时间，用于刷新token使用，30天"""
+    REFRESH_TOKEN_EXPIRE_MINUTES: int = 1440 * 60  # 60天
 
     # 中间件配置
     MIDDLEWARE_CONFIG: Dict[str, bool] = {
