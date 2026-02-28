@@ -1,0 +1,28 @@
+# ============== 核心框架 ==============
+fastapi==0.115.4
+uvicorn==0.32.0
+starlette==0.41.2
+pydantic==2.9.2
+pydantic-settings==2.6.0
+
+# ============== 数据库 ==============
+SQLAlchemy==2.0.36
+aiomysql==0.2.0
+mysql-connector-python==8.3.0
+alembic==1.14.0
+
+# ============== 身份验证 ==============
+passlib==1.7.4
+PyJWT==2.8.0
+
+# ============== HTTP和工具 ==============
+httpx==0.27.0
+requests==2.32.3
+python-multipart==0.0.9
+python-dotenv==1.0.1
+
+# ============== 其他工具 ==============
+jinja2==3.1.6
+
+# 加密工具
+bcrypt==5.0.0

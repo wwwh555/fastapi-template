@@ -86,7 +86,7 @@ logs/
 *.sqlite3
 
 # alembic
-/requirements.txt
+#/requirements.txt
 
 
 
