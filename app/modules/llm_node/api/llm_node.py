@@ -23,7 +23,7 @@ async def get_models_by_provider_id(
     查询某provider下的所有models
     """
     try:
-        service = LLMModelService(auth.db)
+        service = LLMProviderService(auth.db)
         result = await service.get_models_by_provider_id(provider_id=provider_id)
         return ResponseUtils.success(data=result, msg=f'获取provider(id={provider_id})所有models成功')
     except ValueError as e:
