@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     FILE_LOG_ENABLED: bool = False
 
+    # redis连接地址
+    REDIS_URL: Optional[str] = 'redis://redis:6379/0'
+
     # 日志配置选项
     DB_ECHO: bool = DEBUG  # 在DEBUG模式下输出SQLAlchemy详细SQL日志
     DB_ECHO_POOL: bool = False  # 是否输出连接池日志
