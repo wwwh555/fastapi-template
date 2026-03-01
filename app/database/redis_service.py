@@ -16,6 +16,7 @@ try:
 except Exception as e:
     Logger.error(f"❌  Redis数据库连接失败: {str(e)}")
 
+
 class RedisService:
 
     @staticmethod
@@ -26,7 +27,7 @@ class RedisService:
         try:
             # 兼容老版本Redis (3.x)，不使用mapping参数
             # 使用hmset方法或逐个设置字段
-            key = f'llm_models:{node_name}'
+            key = f'llm_nodes:{node_name}'
 
             # 方法1：使用hmset (Redis 2.0+支持，但在Redis 4.0+被标记为deprecated)
             # 方法2：逐个使用hset (更兼容，Redis 2.0+支持)
@@ -74,7 +75,7 @@ class RedisService:
         获取node节点对应model信息
         """
         try:
-            data = redis_client.hgetall(f"llm_models:{node_name}")
+            data = redis_client.hgetall(f"llm_nodes:{node_name}")
             
             if not data:
                 Logger.warning(f"模型参数不存在: node_name={node_name}")
