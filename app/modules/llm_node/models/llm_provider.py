@@ -1,5 +1,7 @@
+from sqlalchemy.orm import relationship
 from app.database.base_class import Base
 from sqlalchemy import Column, String, Integer, DateTime, func
+
 
 class LLMProviderModel(Base):
     """LLM提供商信息表"""
@@ -13,5 +15,8 @@ class LLMProviderModel(Base):
     api_base = Column(String(255), nullable=False, comment='提供商对应API基础URL')
     create_time = Column(DateTime, default=func.now(), comment='创建时间')
     update_time = Column(DateTime, default=func.now(), onupdate=func.now(), comment='更新时间')
+
+    # 关系定义
+    nodes = relationship("LLMNodeModel", back_populates="provider")
 
 

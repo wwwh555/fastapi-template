@@ -1,3 +1,4 @@
+from sqlalchemy.orm import relationship
 from app.database.base_class import Base
 from sqlalchemy import Column, String, Integer, DateTime, func, JSON, Boolean, ForeignKey
 
@@ -18,4 +19,7 @@ class LLMNodeModel(Base):
     is_stream = Column(Boolean, nullable=False, default=True, comment='是否流式输出：False-否，True-是')
     create_time = Column(DateTime, default=func.now(), comment='创建时间')
     update_time = Column(DateTime, default=func.now(), onupdate=func.now(), comment='更新时间')
+
+    # 关系定义
+    provider = relationship("LLMProviderModel", back_populates="nodes")
 
