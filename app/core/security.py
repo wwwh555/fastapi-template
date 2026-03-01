@@ -52,8 +52,8 @@ def create_access_token(
     创建JWT访问令牌
 
     Args:
-        data: 要编码的数据（通常包含 user_id 等信息）
-        expires_delta: 过期时间增量
+        data: 要编码的携带在token中的数据（通常包含 user_id 等信息）
+        expires_delta: 过期时间增量--即过期时间
 
     Returns:
         JWT令牌字符串
