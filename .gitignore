@@ -98,3 +98,6 @@ logs/
 .pdf
 .doc
 .docx
+
+# 忽略开发时专门用来给claude code读取的临时文件目录
+.claude_read_file/
