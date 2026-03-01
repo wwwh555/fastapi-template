@@ -103,7 +103,7 @@ class LLMNodeService:
 
             # 4. 直接调用模型进行测试
             try:
-                from core.llm_core.llm_service import llm_service
+                from app.core.llm_core.llm_service import llm_service
                 response = await llm_service.ainvoke(
                     prompt_template=prompt_template,
                     input_variables={"test_message": test_message},
