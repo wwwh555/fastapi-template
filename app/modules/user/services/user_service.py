@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List, Tuple
-
+from app.decorators.transaction import transactional
+from app.enums.transaction_enums import Propagation
 from app.modules.user.daos.user_dao import UserDAO
 from app.modules.user.models.user import User
 from app.modules.user.schemas.user import UserCreate, UserUpdate
@@ -26,6 +27,7 @@ class UserService:
         """根据UID获取用户"""
         return await self.dao.get_user_by_uid(uid)
 
+    @transactional(propagation=Propagation.REQUIRED)
     async def create_user(self, user_data: UserCreate) -> User:
         """创建用户"""
         # 检查手机号是否已存在
@@ -37,6 +39,7 @@ class UserService:
         Logger.info(f"创建用户成功: user_id={user.id}, mobile={user.mobile}")
         return user
 
+    @transactional(propagation=Propagation.REQUIRED)
     async def update_user(self, user_id: int, update_data: UserUpdate) -> Optional[User]:
         """更新用户"""
         user = await self.dao.update_user(user_id, update_data)
@@ -44,6 +47,7 @@ class UserService:
             Logger.info(f"更新用户成功: user_id={user_id}")
         return user
 
+    @transactional(propagation=Propagation.REQUIRED)
     async def delete_user(self, user_id: int) -> bool:
         """删除用户"""
         result = await self.dao.delete_user(user_id)

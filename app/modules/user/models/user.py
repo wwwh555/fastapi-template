@@ -1,10 +1,7 @@
 from sqlalchemy import Column, String, Integer, DateTime, Boolean
 from sqlalchemy.sql import func
-from passlib.context import CryptContext
 from sqlalchemy.sql.expression import text
 from app.database.base_class import Base
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class User(Base):
@@ -25,8 +22,10 @@ class User(Base):
 
     def set_password(self, password: str):
         """设置密码（加密存储）"""
-        self.password = pwd_context.hash(password)
+        from app.core.security import hash_password
+        self.password = hash_password(password)
 
     def verify_password(self, password: str) -> bool:
         """验证密码"""
-        return pwd_context.verify(password, self.password)
+        from app.core.security import verify_password as verify_pwd
+        return verify_pwd(password, self.password)
