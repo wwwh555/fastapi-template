@@ -133,9 +133,9 @@ async def init_llm_node_models():
                 'is_stream': int(node.is_stream),  # bool需值转为int值再存到redis中
             }
             RedisService.save_model(node.name, model_params)   # 将模型保存到redis中
-        Logger.info("初始化LLM models实例成功")
+        Logger.info("初始化LLM nodes配置到redis中成功")
     except Exception as e:
-        Logger.error(f"初始化LLM models实例时出错: {e}")
+        Logger.error(f"初始化LLM nodes配置到redis中成功: {e}")
     finally:
         await db.close()  # 确保数据库会话关闭
 

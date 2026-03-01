@@ -2,6 +2,7 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
+from app.core.llm_core.init_llm import init_llm_node_models
 from app.database.base_class import Base
 from app.utils.logger import Logger
 
@@ -83,17 +84,20 @@ async def init_db():
                     nickname="Default User",
                     is_active=True
                 )
-                new_user.set_password("default_password")
+                new_user.set_password("12345678")
                 session.add(new_user)
                 await session.commit()
-                Logger.info(f"Default user created with ID: {new_user.id}")
+                Logger.info(f"创建默认用户 ID: {new_user.id}")
             else:
-                Logger.info(f"Existing user found with ID: {user.id}. Skipping default user creation.")
+                Logger.info(f"默认用户已存在 ID: {user.id}. 跳过默认用户创建.")
     except Exception as e:
-        Logger.error(f"Failed to check/create default user: {e}")
+        Logger.error(f"失败检查并创建默认用户: {e}")
 
-    # 3.初始化数据库表数据(示例数据、配置项数据）
+    # 4.初始化数据库表数据(示例数据、配置项数据）
     await init_db_data()
+
+    # 5.redis初始化加载llm_nodes配置
+    await init_llm_node_models()
 
 
 async def get_db():
