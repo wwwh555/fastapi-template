@@ -6,9 +6,10 @@
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 import jwt
+from fastapi import HTTPException
 from passlib.context import CryptContext
 from pydantic import BaseModel, Field
-
+from starlette import status
 from app.core.config import settings
 
 
@@ -93,8 +94,12 @@ def verify_token(token: str) -> Optional[Dict[str, Any]]:
             algorithms=[settings.ALGORITHM]
         )
         return payload
-    except JWTError:
-        return None
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="认证已失效，请您重新登录")
+    except (jwt.InvalidSignatureError, jwt.DecodeError):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无效认证，请您重新登录")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"身份认证时服务端出现未知异常: {str(e)}")
 
 
 def decode_token(token: str) -> Optional[Dict[str, Any]]:
@@ -117,8 +122,13 @@ def decode_token(token: str) -> Optional[Dict[str, Any]]:
             options={"verify_exp": False}
         )
         return payload
-    except JWTError:
-        return None
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="认证已失效，请您重新登录")
+    except (jwt.InvalidSignatureError, jwt.DecodeError):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无效认证，请您重新登录")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail=f"身份认证时服务端出现未知异常: {str(e)}")
 
 
 def get_token_expire_time(minutes: Optional[int] = None) -> datetime:
@@ -146,9 +156,6 @@ class TokenPayload(BaseModel):
     exp: int = Field(..., description="过期时间戳")
     iat: int = Field(..., description="签发时间戳")
     extra: Optional[Dict[str, Any]] = Field(None, description="额外数据")
-
-
-from pydantic import Field
 
 
 def create_token_payload(user_id: int, extra_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
