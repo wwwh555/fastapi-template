@@ -10,6 +10,8 @@ SQLAlchemy==2.0.36
 aiomysql==0.2.0
 mysql-connector-python==8.3.0
 alembic==1.14.0
+# redis
+redis==6.2.0
 
 # ============== 身份验证 ==============
 passlib==1.7.4
@@ -24,5 +26,15 @@ python-dotenv==1.0.1
 # ============== 其他工具 ==============
 jinja2==3.1.6
 
-# 加密工具
-bcrypt==5.0.0
+# 加密工具（注意用低版本）
+bcrypt==4.0.1
+
+
+# langchain相关依赖
+langchain~=0.3.4
+langchain_community~=0.3.20
+langchain_core~=0.3.51
+langchain_openai~=0.3.12
+langchain_deepseek~=0.1.2
+langgraph~=0.6.2
+zhipuai~=2.1.5
