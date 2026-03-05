@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 from app.modules.llm_node.schemas.llm_provider_model_schemas import LLMProviderModelResponse
 from app.modules.llm_node.schemas.llm_provider_schemas import LLMProviderResponse
 from app.modules.llm_node.schemas.llm_node_schemas import LLMNodeResponse, LLMNodeUpdateRequest, LLMNodeTestResponse, \
-    LLMNodeTestRequest
+    LLMNodeTestRequest, LLMNodeBatchUpdateRequest, LLMNodeBatchUpdateResponse
 from app.modules.llm_node.services.llm_node_service import LLMNodeService
 from app.modules.llm_node.services.llm_provider_service import LLMProviderService
 from app.database.redis_service import RedisService
@@ -81,6 +81,40 @@ async def update_llm_node(
         service = LLMNodeService(auth.db)
         node_schema = await service.update_llm_node(update_data=request.model_dump(exclude_none=True))
         return ResponseUtils.success(data=node_schema, msg=f"更新node(id={str(id)})成功")
+    except ValueError as e:
+        msg = f'错误请求 -- {str(e)}'
+        Logger.error(msg)
+        return ResponseUtils.error(code=ResponseCode.BAD_REQUEST, msg=msg)
+    except Exception as e:
+        msg = f'服务端异常 -- {str(e)}'
+        Logger.error(msg)
+        return ResponseUtils.error(msg=msg)
+
+
+@router.put('/batch-update', response_model=ApiResponse[LLMNodeBatchUpdateResponse])
+async def batch_update_llm_nodes(
+        request: LLMNodeBatchUpdateRequest,
+        auth: Auth = Depends(get_auth)
+):
+    """批量更新llm nodes(包括更新数据库node表记录和重新加载全局的llm_models对应node model)"""
+    try:
+        service = LLMNodeService(auth.db)
+
+        # 将请求转换为字典列表
+        update_data_list = [node.model_dump(exclude_none=True) for node in request.nodes]
+
+        # 调用service层的批量更新方法
+        result = await service.batch_update_llm_nodes(update_data=update_data_list)
+
+        # 根据更新结果返回不同的消息
+        if result.failed_count == 0:
+            msg = f"批量更新成功: 共{result.total}个node全部更新成功"
+        elif result.success_count == 0:
+            msg = f"批量更新失败: 共{result.total}个node全部更新失败"
+        else:
+            msg = f"批量更新部分成功: 成功{result.success_count}个, 失败{result.failed_count}个"
+
+        return ResponseUtils.success(data=result, msg=msg)
     except ValueError as e:
         msg = f'错误请求 -- {str(e)}'
         Logger.error(msg)

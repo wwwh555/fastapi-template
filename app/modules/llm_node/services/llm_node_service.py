@@ -1,11 +1,18 @@
 import time
+from typing import List, Dict
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.decorators.transaction import transactional
 from app.enums import Propagation
 from app.modules.llm_node.daos.llm_node_dao import LLMNodeDao
-from app.modules.llm_node.schemas.llm_node_schemas import LLMNodeResponse, LLMNodeTestRequest, LLMNodeTestResponse
+from app.modules.llm_node.schemas.llm_node_schemas import (
+    LLMNodeResponse,
+    LLMNodeTestRequest,
+    LLMNodeTestResponse,
+    LLMNodeBatchUpdateResponse,
+    LLMNodeBatchUpdateResult
+)
 from app.database.redis_service import RedisService
 from app.utils.logger import Logger
 from app.utils.object_convert_utils import ObjectConvertUtils
@@ -137,3 +144,80 @@ class LLMNodeService:
         except Exception as e:
             Logger.error(f"测试LLM节点失败: {str(e)}")
             raise
+
+    @transactional(propagation=Propagation.REQUIRED)
+    async def batch_update_llm_nodes(self, update_data: List[Dict]) -> LLMNodeBatchUpdateResponse:
+        """
+        批量更新LLM Node
+
+        Args:
+            update_data: 待更新的node列表，每个元素是一个包含id和更新字段的字典
+
+        Returns:
+            LLMNodeBatchUpdateResponse: 批量更新结果，包含每个node的更新状态
+        """
+        results = []
+        success_count = 0
+        failed_count = 0
+
+        for node_data in update_data:
+            node_id = node_data.get('id')
+            result_item = {
+                'id': node_id,
+                'success': False,
+                'message': '',
+                'data': None
+            }
+
+            try:
+                # 1.查询node
+                node_model = await self.llm_node_dao.get_llm_node_by_id_or_name(id=node_id)
+                if node_model is None:
+                    result_item['message'] = f"更新的node不存在(id={node_id})"
+                    results.append(LLMNodeBatchUpdateResult(**result_item))
+                    failed_count += 1
+                    continue
+
+                # 2.更新（复制一份update_data，避免修改原始数据）
+                update_fields = node_data.copy()
+                update_fields.pop('id')
+                node_update = await self.llm_node_dao.update_llm_node_by_id(
+                    id=node_id,
+                    update_data=update_fields
+                )
+
+                # 3.更新redis中对应model配置（通过工厂类重新创建一个）
+                await RedisService.update_model(node_model.name, update_fields, self.db)
+
+                # 4.构造成功结果
+                result_item['success'] = True
+                result_item['message'] = f"更新node(id={node_id})成功"
+                result_item['data'] = ObjectConvertUtils.model_to_schema(node_update, LLMNodeResponse)
+                results.append(LLMNodeBatchUpdateResult(**result_item))
+                success_count += 1
+
+                Logger.info(f"批量更新: 更新node(id={node_id})成功,Redis全局models配置已同步更新")
+
+            except ValueError as e:
+                result_item['message'] = f"更新node(id={node_id})失败: {str(e)}"
+                results.append(LLMNodeBatchUpdateResult(**result_item))
+                failed_count += 1
+                Logger.error(f"批量更新: 更新node(id={node_id})失败 - {str(e)}")
+
+            except Exception as e:
+                result_item['message'] = f"更新node(id={node_id})异常: {str(e)}"
+                results.append(LLMNodeBatchUpdateResult(**result_item))
+                failed_count += 1
+                Logger.error(f"批量更新: 更新node(id={node_id})异常 - {str(e)}")
+
+        # 构造批量更新响应
+        response = LLMNodeBatchUpdateResponse(
+            total=len(update_data),
+            success_count=success_count,
+            failed_count=failed_count,
+            results=results
+        )
+
+        Logger.info(f"批量更新完成: 总数={response.total}, 成功={success_count}, 失败={failed_count}")
+
+        return response
