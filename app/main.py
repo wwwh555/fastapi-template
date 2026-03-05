@@ -72,6 +72,17 @@ async def docs():
     return RedirectResponse(url="/docs")
 
 
+@app.get("/llm-manager", include_in_schema=False)
+async def llm_node_manager():
+    """LLM Node 管理页面快捷入口"""
+    from fastapi.responses import FileResponse
+    import os
+    static_file = os.path.join(os.path.dirname(__file__), "static", "llm_node_manager.html")
+    if os.path.exists(static_file):
+        return FileResponse(static_file)
+    return RedirectResponse(url="/i/llm_node_manager.html")
+
+
 # 将路由器包括到FastAPI主应用中
 app.include_router(route)
 

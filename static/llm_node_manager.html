@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Node 管理器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .toolbar {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .toolbar-left {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        /* Checkbox styles */
+        .node-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .select-all-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px 30px;
+            background: #e3f2fd;
+            border-bottom: 1px solid #bbdefb;
+        }
+
+        .select-all-container label {
+            cursor: pointer;
+            font-size: 14px;
+            color: #1976d2;
+            font-weight: 500;
+            user-select: none;
+        }
+
+        .selection-info {
+            margin-left: auto;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .node-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .node-card-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            padding: 10px 40px 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            width: 250px;
+            font-size: 14px;
+        }
+
+        .search-box::after {
+            content: "🔍";
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+        }
+
+        select {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            background: white;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .stats {
+            padding: 15px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .node-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 20px;
+        }
+
+        .node-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .node-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            border-color: #667eea;
+        }
+
+        .node-card-header {
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .node-card-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .node-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-stream {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .node-card-body {
+            padding: 20px;
+        }
+
+        .node-info-row {
+            display: flex;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+
+        .node-info-label {
+            color: #6c757d;
+            width: 100px;
+            flex-shrink: 0;
+        }
+
+        .node-info-value {
+            color: #212529;
+            flex: 1;
+            word-break: break-all;
+        }
+
+        .node-card-footer {
+            padding: 12px 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px 30px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 20px;
+            color: #212529;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #6c757d;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            color: #212529;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+            font-family: 'Courier New', monospace;
+        }
+
+        .form-group .hint {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            cursor: pointer;
+        }
+
+        .modal-footer {
+            padding: 20px 30px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* Loading Spinner */
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Alert Messages */
+        .alert {
+            padding: 15px 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.active {
+            display: block;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        /* Batch Update Section */
+        .batch-update-section {
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .batch-update-section h3 {
+            margin-bottom: 15px;
+            font-size: 16px;
+            color: #495057;
+        }
+
+        .selected-nodes-info {
+            padding: 10px 15px;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border: 1px solid #e0e0e0;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .node-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .toolbar-left {
+                flex-direction: column;
+            }
+
+            .search-box input {
+                width: 100%;
+            }
+        }
+
+        /* Parameter JSON Editor */
+        .json-editor {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            min-height: 150px;
+            width: 100%;
+            resize: vertical;
+        }
+
+        .json-editor:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .json-error {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .json-error.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🤖 LLM Node 管理器</h1>
+            <p>实时管理和监控您的 LLM 节点配置</p>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <div class="toolbar-left">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="搜索节点名称或描述..." oninput="filterNodes()">
+                </div>
+                <select id="providerFilter" onchange="filterNodes()">
+                    <option value="">所有提供商</option>
+                </select>
+                <select id="moduleFilter" onchange="filterNodes()">
+                    <option value="">所有模块</option>
+                </select>
+            </div>
+            <div class="toolbar-right">
+                <button class="btn btn-secondary" onclick="loadNodes()">🔄 刷新</button>
+                <button class="btn btn-primary" onclick="openBatchUpdateModal()">📦 批量更新</button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats">
+            <div class="stat-item">
+                <span class="stat-label">总节点数:</span>
+                <span class="stat-value" id="totalNodes">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">流式节点:</span>
+                <span class="stat-value" id="streamNodes">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">提供商:</span>
+                <span class="stat-value" id="totalProviders">0</span>
+            </div>
+        </div>
+
+        <!-- Select All Bar -->
+        <div class="select-all-container">
+            <input type="checkbox" id="selectAll" class="node-checkbox" onchange="toggleSelectAll()">
+            <label for="selectAll">全选 / 取消全选</label>
+            <span class="selection-info">已选择 <strong id="selectedCountDisplay">0</strong> 个节点</span>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <div id="alertContainer"></div>
+
+            <div id="nodesContainer" class="node-grid">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>加载中...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">编辑节点</h2>
+                <button class="close-btn" onclick="closeModal('editModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm">
+                    <input type="hidden" id="editNodeId">
+
+                    <div class="form-group">
+                        <label for="editNodeName">节点名称 *</label>
+                        <input type="text" id="editNodeName" readonly style="background: #f8f9fa;">
+                        <div class="hint">节点名称不可修改</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editDescription">节点描述</label>
+                        <textarea id="editDescription" rows="2"></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editProvider">提供商 *</label>
+                            <select id="editProvider" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editModelName">模型名称 *</label>
+                            <input type="text" id="editModelName" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editServiceModule">业务模块</label>
+                            <input type="text" id="editServiceModule">
+                        </div>
+                        <div class="form-group">
+                            <label for="editFunctionName">功能名称</label>
+                            <input type="text" id="editFunctionName">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editParameter">模型参数 (JSON格式)</label>
+                        <textarea id="editParameter" class="json-editor" rows="6"></textarea>
+                        <div class="json-error" id="jsonError">JSON 格式错误，请检查</div>
+                        <div class="hint">例如: {"temperature": 0.7, "max_tokens": 2000}</div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="editIsStream">
+                            <label for="editIsStream">启用流式输出</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('editModal')">取消</button>
+                <button class="btn btn-primary" onclick="saveNode()">保存更改</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Batch Update Modal -->
+    <div id="batchModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>批量更新节点</h2>
+                <button class="close-btn" onclick="closeModal('batchModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info active">
+                    <strong>提示：</strong>批量更新会同时更新数据库和 Redis 缓存，请谨慎操作。
+                </div>
+
+                <div class="batch-update-section">
+                    <h3>选择要更新的字段</h3>
+
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="batchUpdateProvider" onchange="toggleBatchField('provider')">
+                            <label for="batchUpdateProvider">提供商</label>
+                        </div>
+                        <select id="batchProvider" disabled style="margin-top: 10px;"></select>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="batchUpdateModelName" onchange="toggleBatchField('modelName')">
+                            <label for="batchUpdateModelName">模型名称</label>
+                        </div>
+                        <input type="text" id="batchModelName" disabled style="margin-top: 10px;">
+                    </div>
+
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="batchUpdateParameter" onchange="toggleBatchField('parameter')">
+                            <label for="batchUpdateParameter">模型参数</label>
+                        </div>
+                        <textarea id="batchParameter" class="json-editor" disabled rows="4" style="margin-top: 10px;"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="batchUpdateIsStream" onchange="toggleBatchField('isStream')">
+                            <label for="batchUpdateIsStream">流式输出</label>
+                        </div>
+                        <select id="batchIsStream" disabled style="margin-top: 10px;">
+                            <option value="">不修改</option>
+                            <option value="true">启用</option>
+                            <option value="false">禁用</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="selected-nodes-info">
+                    <strong>已选择 <span id="selectedCount">0</span> 个节点</strong>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('batchModal')">取消</button>
+                <button class="btn btn-primary" onclick="executeBatchUpdate()">⚠️ 执行批量更新</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let allNodes = [];
+        let allProviders = [];
+        let selectedNodes = new Set();
+        const API_BASE = '/api/v1/llm/node';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadNodes();
+            loadProviders();
+        });
+
+        // Load all nodes
+        async function loadNodes() {
+            try {
+                showAlert('info', '正在加载节点数据...');
+
+                const response = await fetch(`${API_BASE}/list`);
+                const result = await response.json();
+
+                if (result.code === 200) {
+                    allNodes = result.data || [];
+                    renderNodes(allNodes);
+                    updateFilters();
+                    updateStats();
+                    hideAlert();
+                } else {
+                    showAlert('error', result.msg || '加载节点失败');
+                }
+            } catch (error) {
+                console.error('Load nodes error:', error);
+                showAlert('error', '加载节点失败: ' + error.message);
+            }
+        }
+
+        // Load providers
+        async function loadProviders() {
+            try {
+                const response = await fetch(`${API_BASE}/provider/list`);
+                const result = await response.json();
+
+                if (result.code === 200) {
+                    allProviders = result.data || [];
+                    populateProviderFilters();
+                }
+            } catch (error) {
+                console.error('Load providers error:', error);
+            }
+        }
+
+        // Render nodes
+        function renderNodes(nodes) {
+            const container = document.getElementById('nodesContainer');
+
+            if (nodes.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <h3>暂无节点数据</h3>
+                        <p>请检查后端服务或添加节点配置</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = nodes.map(node => `
+                <div class="node-card" data-node-id="${node.id}">
+                    <div class="node-card-header">
+                        <div class="node-card-header-left">
+                            <input type="checkbox" class="node-checkbox" data-node-id="${node.id}"
+                                   onchange="toggleNodeSelection(${node.id})" onclick="event.stopPropagation()">
+                            <h3 style="cursor: pointer;" onclick="openEditModal(${node.id})">${escapeHtml(node.name)}</h3>
+                        </div>
+                        ${node.is_stream ? '<span class="node-badge badge-stream">流式</span>' : ''}
+                    </div>
+                    <div class="node-card-body" onclick="openEditModal(${node.id})" style="cursor: pointer;">
+                        <div class="node-info-row">
+                            <span class="node-info-label">描述:</span>
+                            <span class="node-info-value">${escapeHtml(node.description)}</span>
+                        </div>
+                        <div class="node-info-row">
+                            <span class="node-info-label">提供商:</span>
+                            <span class="node-info-value">${node.provider_id}</span>
+                        </div>
+                        <div class="node-info-row">
+                            <span class="node-info-label">模型:</span>
+                            <span class="node-info-value">${escapeHtml(node.model_name)}</span>
+                        </div>
+                        <div class="node-info-row">
+                            <span class="node-info-label">模块:</span>
+                            <span class="node-info-value">${escapeHtml(node.service_module)}</span>
+                        </div>
+                        <div class="node-info-row">
+                            <span class="node-info-label">功能:</span>
+                            <span class="node-info-value">${escapeHtml(node.function_name)}</span>
+                        </div>
+                    </div>
+                    <div class="node-card-footer">
+                        <button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); openEditModal(${node.id})">编辑</button>
+                        <button class="btn btn-sm btn-success" onclick="event.stopPropagation(); viewNodeParams(${node.id})">查看参数</button>
+                    </div>
+                </div>
+            `).join('');
+
+            // 恢复选中状态
+            restoreSelectionState();
+        }
+
+        // Update filters
+        function updateFilters() {
+            const modules = [...new Set(allNodes.map(n => n.service_module))].sort();
+            const moduleFilter = document.getElementById('moduleFilter');
+
+            moduleFilter.innerHTML = '<option value="">所有模块</option>' +
+                modules.map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('');
+        }
+
+        // Populate provider filters
+        function populateProviderFilters() {
+            const providerFilter = document.getElementById('providerFilter');
+            const editProvider = document.getElementById('editProvider');
+            const batchProvider = document.getElementById('batchProvider');
+
+            const options = allProviders.map(p => {
+                const displayName = p.tag ? `${escapeHtml(p.name)} (${escapeHtml(p.tag)})` : escapeHtml(p.name);
+                return `<option value="${p.id}">${displayName}</option>`;
+            }).join('');
+
+            providerFilter.innerHTML = '<option value="">所有提供商</option>' + options;
+            editProvider.innerHTML = '<option value="">请选择</option>' + options;
+            batchProvider.innerHTML = '<option value="">请选择</option>' + options;
+        }
+
+        // Update stats
+        function updateStats() {
+            document.getElementById('totalNodes').textContent = allNodes.length;
+            document.getElementById('streamNodes').textContent = allNodes.filter(n => n.is_stream).length;
+            document.getElementById('totalProviders').textContent = allProviders.length;
+        }
+
+        // Filter nodes
+        function filterNodes() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const providerId = document.getElementById('providerFilter').value;
+            const module = document.getElementById('moduleFilter').value;
+
+            const filtered = allNodes.filter(node => {
+                const matchSearch = !search ||
+                    node.name.toLowerCase().includes(search) ||
+                    node.description.toLowerCase().includes(search);
+                const matchProvider = !providerId || node.provider_id === parseInt(providerId);
+                const matchModule = !module || node.service_module === module;
+
+                return matchSearch && matchProvider && matchModule;
+            });
+
+            renderNodes(filtered);
+        }
+
+        // Toggle node selection
+        function toggleNodeSelection(nodeId) {
+            if (selectedNodes.has(nodeId)) {
+                selectedNodes.delete(nodeId);
+            } else {
+                selectedNodes.add(nodeId);
+            }
+            updateSelectedCount();
+            updateSelectAllCheckbox();
+        }
+
+        // Toggle select all
+        function toggleSelectAll() {
+            const selectAllCheckbox = document.getElementById('selectAll');
+            const visibleNodeCheckboxes = document.querySelectorAll('.node-checkbox:not(#selectAll)');
+
+            if (selectAllCheckbox.checked) {
+                // 选中所有可见的节点
+                visibleNodeCheckboxes.forEach(checkbox => {
+                    const nodeId = parseInt(checkbox.getAttribute('data-node-id'));
+                    selectedNodes.add(nodeId);
+                    checkbox.checked = true;
+                });
+            } else {
+                // 取消选中所有
+                visibleNodeCheckboxes.forEach(checkbox => {
+                    const nodeId = parseInt(checkbox.getAttribute('data-node-id'));
+                    selectedNodes.delete(nodeId);
+                    checkbox.checked = false;
+                });
+            }
+
+            updateSelectedCount();
+        }
+
+        // Update selected count display
+        function updateSelectedCount() {
+            document.getElementById('selectedCountDisplay').textContent = selectedNodes.size;
+        }
+
+        // Update select all checkbox state
+        function updateSelectAllCheckbox() {
+            const selectAllCheckbox = document.getElementById('selectAll');
+            const visibleNodeCheckboxes = document.querySelectorAll('.node-checkbox:not(#selectAll)');
+            const checkedCount = Array.from(visibleNodeCheckboxes).filter(cb => cb.checked).length;
+
+            if (checkedCount === 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            } else if (checkedCount === visibleNodeCheckboxes.length) {
+                selectAllCheckbox.checked = true;
+                selectAllCheckbox.indeterminate = false;
+            } else {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = true;
+            }
+        }
+
+        // Restore selection state after rendering
+        function restoreSelectionState() {
+            const checkboxes = document.querySelectorAll('.node-checkbox:not(#selectAll)');
+            checkboxes.forEach(checkbox => {
+                const nodeId = parseInt(checkbox.getAttribute('data-node-id'));
+                if (selectedNodes.has(nodeId)) {
+                    checkbox.checked = true;
+                } else {
+                    checkbox.checked = false;
+                }
+            });
+            updateSelectAllCheckbox();
+        }
+
+        // Open edit modal
+        async function openEditModal(nodeId) {
+            const node = allNodes.find(n => n.id === nodeId);
+            if (!node) return;
+
+            document.getElementById('modalTitle').textContent = '编辑节点 - ' + node.name;
+            document.getElementById('editNodeId').value = node.id;
+            document.getElementById('editNodeName').value = node.name;
+            document.getElementById('editDescription').value = node.description;
+            document.getElementById('editProvider').value = node.provider_id;
+            document.getElementById('editModelName').value = node.model_name;
+            document.getElementById('editServiceModule').value = node.service_module;
+            document.getElementById('editFunctionName').value = node.function_name;
+            document.getElementById('editParameter').value = JSON.stringify(node.parameter, null, 2);
+            document.getElementById('editIsStream').checked = node.is_stream;
+
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        // Save node
+        async function saveNode() {
+            const nodeId = document.getElementById('editNodeId').value;
+            const parameterText = document.getElementById('editParameter').value;
+
+            // Validate JSON
+            try {
+                JSON.parse(parameterText);
+                document.getElementById('jsonError').classList.remove('active');
+            } catch (e) {
+                document.getElementById('jsonError').classList.add('active');
+                return;
+            }
+
+            const updateData = {
+                id: parseInt(nodeId),
+                description: document.getElementById('editDescription').value,
+                provider_id: parseInt(document.getElementById('editProvider').value),
+                model_name: document.getElementById('editModelName').value,
+                service_module: document.getElementById('editServiceModule').value,
+                function_name: document.getElementById('editFunctionName').value,
+                parameter: JSON.parse(parameterText),
+                is_stream: document.getElementById('editIsStream').checked
+            };
+
+            try {
+                showAlert('info', '正在保存...');
+
+                const response = await fetch(`${API_BASE}/update`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updateData)
+                });
+
+                const result = await response.json();
+
+                if (result.code === 200) {
+                    showAlert('success', '节点更新成功！');
+                    closeModal('editModal');
+                    await loadNodes();
+                } else {
+                    showAlert('error', result.msg || '更新失败');
+                }
+            } catch (error) {
+                console.error('Save node error:', error);
+                showAlert('error', '更新失败: ' + error.message);
+            }
+        }
+
+        // View node parameters
+        function viewNodeParams(nodeId) {
+            const node = allNodes.find(n => n.id === nodeId);
+            if (!node) return;
+
+            const params = JSON.stringify(node.parameter, null, 2);
+            alert(`节点 ${node.name} 的参数配置:\n\n${params}`);
+        }
+
+        // Batch update
+        function openBatchUpdateModal() {
+            if (selectedNodes.size === 0) {
+                showAlert('error', '请先选择要批量更新的节点！');
+                return;
+            }
+
+            updateSelectedCount();
+            document.getElementById('batchModal').classList.add('active');
+
+            // Reset form
+            document.querySelectorAll('#batchModal input[type="checkbox"]').forEach(cb => cb.checked = false);
+            document.querySelectorAll('#batchModal input:not([type="checkbox"]), #batchModal select, #batchModal textarea').forEach(el => {
+                if (el.id !== 'batchIsStream') el.disabled = true;
+                if (el.tagName === 'INPUT' && el.type !== 'checkbox') el.value = '';
+                if (el.tagName === 'SELECT') el.selectedIndex = 0;
+                if (el.tagName === 'TEXTAREA') el.value = '';
+            });
+        }
+
+        function toggleBatchField(field) {
+            const checkbox = document.getElementById('batchUpdate' + capitalizeFirst(field));
+            const input = document.getElementById('batch' + capitalizeFirst(field));
+            input.disabled = !checkbox.checked;
+        }
+
+        function updateSelectedCount() {
+            document.getElementById('selectedCount').textContent = selectedNodes.size;
+        }
+
+        async function executeBatchUpdate() {
+            if (selectedNodes.size === 0) {
+                showAlert('error', '请先选择要批量更新的节点！');
+                return;
+            }
+
+            const updateData = {};
+            const nodesToUpdate = [];
+
+            // Collect update fields
+            if (document.getElementById('batchUpdateProvider').checked) {
+                const providerId = document.getElementById('batchProvider').value;
+                if (!providerId) {
+                    showAlert('error', '请选择提供商');
+                    return;
+                }
+                updateData.provider_id = parseInt(providerId);
+            }
+
+            if (document.getElementById('batchUpdateModelName').checked) {
+                const modelName = document.getElementById('batchModelName').value.trim();
+                if (!modelName) {
+                    showAlert('error', '请输入模型名称');
+                    return;
+                }
+                updateData.model_name = modelName;
+            }
+
+            if (document.getElementById('batchUpdateParameter').checked) {
+                const parameterText = document.getElementById('batchParameter').value;
+                try {
+                    updateData.parameter = JSON.parse(parameterText);
+                } catch (e) {
+                    showAlert('error', '参数 JSON 格式错误');
+                    return;
+                }
+            }
+
+            if (document.getElementById('batchUpdateIsStream').checked) {
+                const isStreamValue = document.getElementById('batchIsStream').value;
+                if (isStreamValue) {
+                    updateData.is_stream = isStreamValue === 'true';
+                }
+            }
+
+            if (Object.keys(updateData).length === 0) {
+                showAlert('error', '请至少选择一个要更新的字段');
+                return;
+            }
+
+            // Prepare batch update data - only update selected nodes
+            selectedNodes.forEach(nodeId => {
+                nodesToUpdate.push({
+                    id: nodeId,
+                    ...updateData
+                });
+            });
+
+            try {
+                showAlert('info', `正在批量更新选中的 ${nodesToUpdate.length} 个节点...`);
+
+                const response = await fetch(`${API_BASE}/batch-update`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nodes: nodesToUpdate })
+                });
+
+                const result = await response.json();
+
+                if (result.code === 200) {
+                    const { total, success_count, failed_count } = result.data;
+                    if (failed_count === 0) {
+                        showAlert('success', `批量更新成功！共更新 ${success_count} 个节点`);
+                        // 清空选择
+                        selectedNodes.clear();
+                        document.getElementById('selectAll').checked = false;
+                        updateSelectedCount();
+                    } else {
+                        showAlert('info', `批量更新完成：成功 ${success_count} 个，失败 ${failed_count} 个`);
+                    }
+                    closeModal('batchModal');
+                    await loadNodes();
+                } else {
+                    showAlert('error', result.msg || '批量更新失败');
+                }
+            } catch (error) {
+                console.error('Batch update error:', error);
+                showAlert('error', '批量更新失败: ' + error.message);
+            }
+        }
+
+        // Close modal
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Show alert
+        function showAlert(type, message) {
+            const container = document.getElementById('alertContainer');
+            const alertClass = type === 'error' ? 'alert-error' : type === 'success' ? 'alert-success' : 'alert-info';
+
+            container.innerHTML = `
+                <div class="alert ${alertClass} active">
+                    ${escapeHtml(message)}
+                </div>
+            `;
+
+            if (type === 'success') {
+                setTimeout(hideAlert, 3000);
+            }
+        }
+
+        function hideAlert() {
+            const container = document.getElementById('alertContainer');
+            container.innerHTML = '';
+        }
+
+        // Utility functions
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function capitalizeFirst(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        // Close modal on outside click
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('active');
+            }
+        }
+    </script>
+</body>
+</html>
