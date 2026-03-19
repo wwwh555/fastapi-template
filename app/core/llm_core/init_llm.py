@@ -112,10 +112,11 @@ async def init_llm_node_models():
     from app.database.database import async_session_local
     db = async_session_local()  # 获取会话
     try:
-        # 查询数据库所有node和对应provider，然后创建model
-        stmt = select(LLMNodeModel).options(selectinload(LLMNodeModel.provider))  # 预加载provider
-        result = await db.execute(stmt)
-        nodes = result.scalars().all()
+        async with db.begin():  # 自动事务管理
+            # 查询数据库所有node和对应provider，然后创建model
+            stmt = select(LLMNodeModel).options(selectinload(LLMNodeModel.provider))  # 预加载provider
+            result = await db.execute(stmt)
+            nodes = result.scalars().all()
 
         for node in nodes:
             # 将node模型配置存入redis中，与celery共享
