@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 from app.modules.llm_node.schemas.llm_provider_model_schemas import LLMProviderModelResponse
 from app.modules.llm_node.schemas.llm_provider_schemas import LLMProviderResponse
 from app.modules.llm_node.schemas.llm_node_schemas import LLMNodeResponse, LLMNodeUpdateRequest, LLMNodeTestResponse, \
-    LLMNodeTestRequest, LLMNodeBatchUpdateRequest, LLMNodeBatchUpdateResponse
+    LLMNodeTestRequest, LLMNodeCreateRequest, LLMNodeBatchUpdateRequest, LLMNodeBatchUpdateResponse
 from app.modules.llm_node.services.llm_node_service import LLMNodeService
 from app.modules.llm_node.services.llm_provider_service import LLMProviderService
 from app.database.redis_service import RedisService
@@ -65,6 +65,26 @@ async def get_llm_node_list(
         msg = f'错误请求 -- {str(e)}'
         Logger.error(msg)
         return ResponseUtils.error(code=ResponseCode.BAD_REQUEST,msg=msg)
+    except Exception as e:
+        msg = f'服务端异常 -- {str(e)}'
+        Logger.error(msg)
+        return ResponseUtils.error(msg=msg)
+
+
+@router.post('/create', response_model=ApiResponse[LLMNodeResponse])
+async def create_llm_node(
+        request: LLMNodeCreateRequest,
+        auth: Auth = Depends(get_auth)
+):
+    """创建新的llm node(包括创建数据库node记录和加载到Redis全局llm_models)"""
+    try:
+        service = LLMNodeService(auth.db)
+        node_schema = await service.create_llm_node(create_data=request.model_dump(exclude_none=True))
+        return ResponseUtils.success(data=node_schema, msg=f"创建node(name={request.name})成功")
+    except ValueError as e:
+        msg = f'错误请求 -- {str(e)}'
+        Logger.error(msg)
+        return ResponseUtils.error(code=ResponseCode.BAD_REQUEST, msg=msg)
     except Exception as e:
         msg = f'服务端异常 -- {str(e)}'
         Logger.error(msg)

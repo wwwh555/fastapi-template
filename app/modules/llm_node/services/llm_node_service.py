@@ -25,6 +25,29 @@ class LLMNodeService:
         self.llm_node_dao = LLMNodeDao(db)
 
     @transactional(propagation=Propagation.REQUIRED)
+    async def create_llm_node(self, create_data: dict) -> LLMNodeResponse:
+        """
+        创建新的LLM节点
+
+        Args:
+            create_data: 创建数据字典
+
+        Returns:
+            LLMNodeResponse: 创建后的节点数据
+
+        Raises:
+            ValueError: 节点名称已存在时抛出
+        """
+        # 1.创建节点
+        new_node = await self.llm_node_dao.create_llm_node(create_data=create_data)
+
+        # 2.将新节点配置加载到Redis中（复用update_model逻辑）
+        await RedisService.update_model(new_node.name, create_data, self.db)
+
+        Logger.info(f"创建node(name={new_node.name})成功,Redis全局models配置已同步加载")
+        return ObjectConvertUtils.model_to_schema(new_node, LLMNodeResponse)
+
+    @transactional(propagation=Propagation.REQUIRED)
     async def get_llm_node_list(self):
         # 1.获取所有models
         models = await self.llm_node_dao.get_llm_node_list()

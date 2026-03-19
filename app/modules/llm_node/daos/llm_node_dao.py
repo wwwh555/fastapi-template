@@ -51,6 +51,22 @@ class LLMNodeDao:
         # 3.响应
         return result.scalars().all()
 
+    async def create_llm_node(self, create_data: dict) -> LLMNodeModel:
+        """创建新的LLM节点"""
+        # 1.检查name是否已存在
+        name = create_data.get('name')
+        existing_node = await self.get_llm_node_by_id_or_name(name=name)
+        if existing_node is not None:
+            raise ValueError(f"节点名称已存在(name={name})")
+
+        # 2.创建新节点
+        new_node = LLMNodeModel(**create_data)
+        self.db.add(new_node)
+        await self.db.flush()
+        await self.db.refresh(new_node)
+
+        return new_node
+
     async def update_llm_node_by_id(self, id: int, update_data: dict) -> LLMNodeModel:
         # 1.查询
         node = await self.get_llm_node_by_id_or_name(id=id)

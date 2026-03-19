@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional, Dict, Any, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class LLMNodeResponse(BaseModel):
@@ -15,6 +15,20 @@ class LLMNodeResponse(BaseModel):
     is_stream: bool = Field(..., description='是否流式输出：False-否，True-是')
     create_time: Optional[datetime] = Field(None, description='创建时间')
     update_time: Optional[datetime] = Field(None, description='更新时间')
+
+
+class LLMNodeCreateRequest(BaseModel):
+    """LLM Node创建请求schema"""
+    model_config = ConfigDict(protected_namespaces=())
+
+    name: str = Field(..., description='节点名称', min_length=1, max_length=50)
+    description: str = Field(..., description='节点描述', min_length=1, max_length=255)
+    service_module: str = Field(..., description='所属业务模块(resume/job/user)', min_length=1, max_length=255)
+    function_name: str = Field(..., description='所属功能模型名称(resume_import/analyse)', min_length=1, max_length=100)
+    model_name: str = Field(..., description='模型名称', min_length=1, max_length=255)
+    parameter: dict = Field(default_factory=dict, description='模型参数配置')
+    provider_id: int = Field(..., description='模型提供商主键id')
+    is_stream: bool = Field(default=True, description='是否流式输出：False-否，True-是')
 
 
 class LLMNodeUpdateRequest(BaseModel):
