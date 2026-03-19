@@ -625,6 +625,7 @@
                     <span id="userDisplay"></span>
                     <button class="btn btn-secondary logout-btn" onclick="logout()">退出登录</button>
                 </div>
+                <button class="btn btn-success" id="addBtn" onclick="openCreateModal()">➕ 新增节点</button>
                 <button class="btn btn-secondary" id="refreshBtn" onclick="loadNodes()">🔄 刷新</button>
                 <button class="btn btn-primary" id="batchBtn" onclick="openBatchUpdateModal()">📦 批量更新</button>
             </div>
@@ -702,11 +703,12 @@
             <div class="modal-body">
                 <form id="editForm">
                     <input type="hidden" id="editNodeId">
+                    <input type="hidden" id="isCreateMode" value="false">
 
                     <div class="form-group">
                         <label for="editNodeName">节点名称 *</label>
                         <input type="text" id="editNodeName" readonly style="background: #f8f9fa;">
-                        <div class="hint">节点名称不可修改</div>
+                        <div class="hint" id="nodeNameHint">节点名称不可修改</div>
                     </div>
 
                     <div class="form-group">
@@ -753,7 +755,7 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('editModal')">取消</button>
-                <button class="btn btn-primary" onclick="saveNode()">保存更改</button>
+                <button class="btn btn-primary" id="saveBtn" onclick="saveNode()">保存更改</button>
             </div>
         </div>
     </div>
@@ -1177,14 +1179,42 @@
             updateSelectAllCheckbox();
         }
 
+        // Open create modal
+        function openCreateModal() {
+            document.getElementById('modalTitle').textContent = '新增节点';
+            document.getElementById('isCreateMode').value = 'true';
+            document.getElementById('saveBtn').textContent = '创建节点';
+
+            // Clear form
+            document.getElementById('editNodeId').value = '';
+            document.getElementById('editNodeName').value = '';
+            document.getElementById('editNodeName').readOnly = false;
+            document.getElementById('editNodeName').style.background = 'white';
+            document.getElementById('nodeNameHint').textContent = '请输入唯一的节点名称';
+            document.getElementById('editDescription').value = '';
+            document.getElementById('editProvider').value = '';
+            document.getElementById('editModelName').value = '';
+            document.getElementById('editServiceModule').value = '';
+            document.getElementById('editFunctionName').value = '';
+            document.getElementById('editParameter').value = '{}';
+            document.getElementById('editIsStream').checked = true;
+
+            document.getElementById('editModal').classList.add('active');
+        }
+
         // Open edit modal
         async function openEditModal(nodeId) {
             const node = allNodes.find(n => n.id === nodeId);
             if (!node) return;
 
             document.getElementById('modalTitle').textContent = '编辑节点 - ' + node.name;
+            document.getElementById('isCreateMode').value = 'false';
+            document.getElementById('saveBtn').textContent = '保存更改';
             document.getElementById('editNodeId').value = node.id;
             document.getElementById('editNodeName').value = node.name;
+            document.getElementById('editNodeName').readOnly = true;
+            document.getElementById('editNodeName').style.background = '#f8f9fa';
+            document.getElementById('nodeNameHint').textContent = '节点名称不可修改';
             document.getElementById('editDescription').value = node.description;
             document.getElementById('editProvider').value = node.provider_id;
             document.getElementById('editModelName').value = node.model_name;
@@ -1196,10 +1226,54 @@
             document.getElementById('editModal').classList.add('active');
         }
 
-        // Save node
+        // Save node (create or update)
         async function saveNode() {
+            const isCreateMode = document.getElementById('isCreateMode').value === 'true';
             const nodeId = document.getElementById('editNodeId').value;
+            const nodeName = document.getElementById('editNodeName').value.trim();
             const parameterText = document.getElementById('editParameter').value;
+
+            // Validate node name
+            if (!nodeName) {
+                showAlert('error', '请输入节点名称');
+                return;
+            }
+
+            if (nodeName.length < 1 || nodeName.length > 50) {
+                showAlert('error', '节点名称长度必须在1-50位之间');
+                return;
+            }
+
+            // Validate required fields
+            const description = document.getElementById('editDescription').value.trim();
+            if (!description) {
+                showAlert('error', '请输入节点描述');
+                return;
+            }
+
+            const providerId = document.getElementById('editProvider').value;
+            if (!providerId) {
+                showAlert('error', '请选择提供商');
+                return;
+            }
+
+            const modelName = document.getElementById('editModelName').value.trim();
+            if (!modelName) {
+                showAlert('error', '请输入模型名称');
+                return;
+            }
+
+            const serviceModule = document.getElementById('editServiceModule').value.trim();
+            if (!serviceModule) {
+                showAlert('error', '请输入业务模块');
+                return;
+            }
+
+            const functionName = document.getElementById('editFunctionName').value.trim();
+            if (!functionName) {
+                showAlert('error', '请输入功能名称');
+                return;
+            }
 
             // Validate JSON
             try {
@@ -1210,38 +1284,46 @@
                 return;
             }
 
-            const updateData = {
-                id: parseInt(nodeId),
-                description: document.getElementById('editDescription').value,
-                provider_id: parseInt(document.getElementById('editProvider').value),
-                model_name: document.getElementById('editModelName').value,
-                service_module: document.getElementById('editServiceModule').value,
-                function_name: document.getElementById('editFunctionName').value,
+            const requestData = {
+                name: nodeName,
+                description: description,
+                provider_id: parseInt(providerId),
+                model_name: modelName,
+                service_module: serviceModule,
+                function_name: functionName,
                 parameter: JSON.parse(parameterText),
                 is_stream: document.getElementById('editIsStream').checked
             };
 
             try {
-                showAlert('info', '正在保存...');
+                showAlert('info', isCreateMode ? '正在创建...' : '正在保存...');
 
-                const response = await apiCall(`${API_BASE}/update`, {
-                    method: 'PUT',
+                const url = isCreateMode ? `${API_BASE}/create` : `${API_BASE}/update`;
+                const method = isCreateMode ? 'POST' : 'PUT';
+
+                // For update, add id
+                if (!isCreateMode) {
+                    requestData.id = parseInt(nodeId);
+                }
+
+                const response = await apiCall(url, {
+                    method: method,
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(updateData)
+                    body: JSON.stringify(requestData)
                 });
 
                 const result = await response.json();
 
                 if (result.code === 200) {
-                    showAlert('success', '节点更新成功！');
+                    showAlert('success', isCreateMode ? '节点创建成功！' : '节点更新成功！');
                     closeModal('editModal');
                     await loadNodes();
                 } else {
-                    showAlert('error', result.msg || '更新失败');
+                    showAlert('error', result.msg || (isCreateMode ? '创建失败' : '更新失败'));
                 }
             } catch (error) {
                 console.error('Save node error:', error);
-                showAlert('error', '更新失败: ' + error.message);
+                showAlert('error', (isCreateMode ? '创建' : '更新') + '失败: ' + error.message);
             }
         }
 
